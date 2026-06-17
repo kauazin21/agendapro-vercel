@@ -1,0 +1,12 @@
+import { Given, Then, When } from "@cucumber/cucumber";
+import { strict as assert } from "assert";
+import { AcceptAppointmentUseCase, CreateAppointmentUseCase, RegisterUserUseCase, UpdateAppointmentStatusUseCase } from "../../core/application/use-cases";
+import { MemoryAppointmentRepository, MemoryNotificationRepository, MemoryUserRepository } from "../../core/infrastructure/memory-repositories";
+import { Appointment, User } from "../../core/domain/entities";
+const users=new MemoryUserRepository(); const appointments=new MemoryAppointmentRepository(); const notifications=new MemoryNotificationRepository(); let client:User; let provider:User; let appointment:Appointment;
+Given("existe um cliente cadastrado no AgendaPro", function(){client=new RegisterUserUseCase(users).execute({name:"Ana Cliente",email:"ana.bdd@email.com",password:"123456",role:"client"})});
+Given("existe um prestador cadastrado no AgendaPro", function(){provider=new RegisterUserUseCase(users).execute({name:"Carlos Técnico",email:"carlos.bdd@email.com",password:"123456",role:"provider",specialty:"Climatização"})});
+When("o cliente cria uma solicitação de atendimento urgente", function(){appointment=new CreateAppointmentUseCase(appointments,notifications).execute({clientId:client.id,clientName:client.name,serviceType:"Climatização",description:"Instalar ar-condicionado",urgency:"urgent",scheduledDate:"2026-07-01"})});
+When("o prestador aceita a solicitação", function(){appointment=new AcceptAppointmentUseCase(appointments,notifications).execute({appointmentId:appointment.id,providerId:provider.id,providerName:provider.name})});
+When("o prestador finaliza o atendimento", function(){appointment=new UpdateAppointmentStatusUseCase(appointments).execute({appointmentId:appointment.id,status:"COMPLETED"})});
+Then("o atendimento deve ficar finalizado e vinculado ao prestador", function(){assert.equal(appointment.status,"COMPLETED");assert.equal(appointment.providerId,provider.id)});
